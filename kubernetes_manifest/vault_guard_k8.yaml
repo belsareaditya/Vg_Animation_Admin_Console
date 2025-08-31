@@ -1,21 +1,23 @@
 apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: vault-guard
-            labels:
-              app: vault-guard
-          spec:
-            replicas: 2
-            selector:
-              matchLabels:
-                app: vault-guard
-            template:
-              metadata:
-                labels:
-                  app: vault-guard
-              spec:
-                containers:
-                - name: vault-guard
-                  image: ${IMAGE_TAG}
-                  ports:
-                  - containerPort: 4173
+kind: Deployment
+metadata:
+  name: vault-guard
+  labels:
+    app: vault-guard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vault-guard
+  template:
+    metadata:
+      labels:
+        app: vault-guard
+    spec:
+      containers:
+        - name: vault-guard
+          image: ${IMAGE_TAG}
+          ports:
+            - containerPort: 4173
+
+
