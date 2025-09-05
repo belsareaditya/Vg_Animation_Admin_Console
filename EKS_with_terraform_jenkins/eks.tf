@@ -23,7 +23,7 @@ module "eks" {
 
   # EKS Managed Node Group(s)
   eks_managed_node_group_defaults = {
-    instance_types = ["t2.medium"]
+    instance_types = ["t2.micro"]
 
     attach_cluster_primary_security_group = true
   }
@@ -31,10 +31,10 @@ module "eks" {
   eks_managed_node_groups = {
       cluster-wg = {
       min_size     = 1
-      max_size     = 2
-      desired_size = 1
+      max_size     = 3
+      desired_size = 2
 
-      instance_types = ["t2.medium"]
+      instance_types = ["t2.micro"]
       capacity_type  = "SPOT"
 
       tags = {
