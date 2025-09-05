@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: vault-guard
-          image: vault_guard:latest
+          image: belsareaditya/vault_guard::latest
           ports:
             - containerPort: 4173
 
