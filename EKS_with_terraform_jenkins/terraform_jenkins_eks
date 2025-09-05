@@ -154,18 +154,4 @@ TF
       }
     }
   }
-
-  post {
-    always {
-      echo 'Pipeline finished — collect logs/artifacts if needed'
-    }
-    success {
-      // archive plan for traceability when present
-      archiveArtifacts artifacts: 'EKS_with_terraform_jenkins/tfplan', allowEmptyArchive: true
-      echo "Pipeline succeeded."
-    }
-    failure {
-      echo 'Pipeline failed — check the console output for failing step'
-    }
-  }
 }
