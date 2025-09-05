@@ -1,0 +1,257 @@
+pipeline {
+  agent any
+
+  parameters {
+    choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Terraform action to perform')
+    string(name: 'IMAGE_TAG', defaultValue: '', description: 'Optional: full image (repo:tag) to set on the deployment (leave empty to skip)')
+  }
+
+  environment {
+    TF_VERSION       = '1.5.7'
+    EKS_CLUSTER_NAME = 'aditya-eks-cluster'
+    EKS_REGION       = 'ap-south-1'
+    PATH_PREFIX      = "${env.WORKSPACE}/bin"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout([$class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[url: 'https://github.com/belsareaditya/Vg_Animation_Admin_Console.git']]])
+        sh 'echo "Workspace contents:" && ls -la'
+      }
+    }
+
+    stage('Bootstrap (versions.tf helper)') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          sh '''
+            set -eux
+            if [ ! -f versions.tf ]; then
+              cat > versions.tf <<'TF'
+terraform {
+  required_version = ">= 1.3.0, < 2.0.0"
+  required_providers {
+    aws = { source = "hashicorp/aws", version = "~> 4.60" }
+  }
+}
+TF
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Ensure Terraform') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          sh '''
+            set -eux
+            TF_VER=${TF_VERSION}
+            if ! command -v terraform >/dev/null 2>&1; then
+              echo "Installing terraform ${TF_VER} into $WORKSPACE/bin"
+              mkdir -p "$WORKSPACE/bin"
+              curl -fsSL -o terraform.zip "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip"
+              unzip -o terraform.zip -d "$WORKSPACE/bin"
+            fi
+            export PATH="$WORKSPACE/bin:$PATH"
+            terraform --version
+          '''
+        }
+      }
+    }
+
+    stage('Validate AWS creds & setup aws cli') {
+      steps {
+        withCredentials([
+          string(credentialsId: 'aws_access_key', variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'secret_access_key', variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+          sh '''
+            set -eux
+            export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            export AWS_DEFAULT_REGION=${EKS_REGION}
+            mkdir -p "$WORKSPACE/bin"
+            if ! command -v aws >/dev/null 2>&1; then
+              echo "Installing awscli v2 into $WORKSPACE/bin"
+              AWS_CLI_ZIP=awscliv2.zip
+              curl -fsSL -o ${AWS_CLI_ZIP} "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+              unzip -o ${AWS_CLI_ZIP} -d "$WORKSPACE"
+              $WORKSPACE/aws/install -i $WORKSPACE/aws-cli -b $WORKSPACE/bin || true
+            fi
+            export PATH="$WORKSPACE/bin:$PATH"
+            aws --version || true
+            aws sts get-caller-identity
+          '''
+        }
+      }
+    }
+
+    stage('Terraform init & plan') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          withCredentials([
+            string(credentialsId: 'aws_access_key', variable: 'AWS_ACCESS_KEY_ID'),
+            string(credentialsId: 'secret_access_key', variable: 'AWS_SECRET_ACCESS_KEY')
+          ]) {
+            sh '''
+              set -eux
+              export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+              export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+              export AWS_DEFAULT_REGION=${EKS_REGION}
+              export PATH="$WORKSPACE/bin:$PATH"
+
+              terraform init -upgrade -input=false
+              terraform validate || true
+              terraform plan -out=tfplan -input=false
+              echo "Terraform plan saved to tfplan"
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Approval') {
+      steps {
+        script {
+          timeout(time: 30, unit: 'MINUTES') {
+            def user = input(
+              message: "Approve to ${params.ACTION} infra?",
+              ok: "Proceed",
+              submitter: "admin,aditya",
+              submitterParameter: 'APPROVER'
+            )
+            env.APPROVER = user
+            echo "Approved by ${user}"
+          }
+        }
+      }
+    }
+
+    stage('Terraform apply/destroy') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          withCredentials([
+            string(credentialsId: 'aws_access_key', variable: 'AWS_ACCESS_KEY_ID'),
+            string(credentialsId: 'secret_access_key', variable: 'AWS_SECRET_ACCESS_KEY')
+          ]) {
+            sh '''
+              set -eux
+              export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+              export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+              export AWS_DEFAULT_REGION=${EKS_REGION}
+              export PATH="$WORKSPACE/bin:$PATH"
+
+              echo "Approved by: ${APPROVER:-unknown}"
+              if [ "${ACTION}" = "apply" ]; then
+                if [ ! -f tfplan ]; then
+                  echo "ERROR: tfplan missing. Did plan stage run?"
+                  ls -la
+                  exit 1
+                fi
+                terraform apply -input=false -auto-approve tfplan
+              else
+                terraform destroy -input=false -auto-approve
+              fi
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Update kubeconfig for EKS') {
+      when { expression { return params.ACTION == 'apply' } }
+      steps {
+        withCredentials([
+          string(credentialsId: 'aws_access_key', variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'secret_access_key', variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+          dir("${WORKSPACE}") {
+            sh '''
+              set -eux
+              export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+              export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+              export AWS_DEFAULT_REGION=${EKS_REGION}
+              export PATH="$WORKSPACE/bin:$PATH"
+
+              if ! command -v kubectl >/dev/null 2>&1; then
+                mkdir -p "$WORKSPACE/bin"
+                KUBECTL_VER=$(curl -sL https://dl.k8s.io/release/stable.txt)
+                curl -fsSL -o $WORKSPACE/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VER}/bin/linux/amd64/kubectl"
+                chmod +x $WORKSPACE/bin/kubectl
+              fi
+
+              aws eks --region ${EKS_REGION} update-kubeconfig --name ${EKS_CLUSTER_NAME}
+
+              echo "Current kubectl context: $(kubectl config current-context)"
+              kubectl get nodes || true
+
+              # Optional: wait for a Ready node (tries ~5 minutes)
+              tries=0
+              until kubectl get nodes --no-headers 2>/dev/null | awk '{print $2}' | grep -q '^Ready$'; do
+                tries=$((tries+1))
+                if [ $tries -gt 30 ]; then
+                  echo "Timed out waiting for a Ready node; continuing anyway."
+                  break
+                fi
+                echo "Waiting for nodes to become Ready... (${tries})"
+                sleep 10
+              done
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Deploy manifests to EKS') {
+      when { expression { return params.ACTION == 'apply' } }
+      steps {
+        dir("${WORKSPACE}") {
+          sh '''
+            set -eux
+            export PATH="$WORKSPACE/bin:$PATH"
+
+            if [ ! -f kubernetes_manifest/vault_guard_k8.yaml ]; then
+              echo "ERROR: kubernetes_manifest/vault_guard_k8.yaml not found"
+              ls -la kubernetes_manifest || true
+              exit 1
+            fi
+
+            kubectl apply -f kubernetes_manifest/vault_guard_k8.yaml
+
+            if [ -n "${IMAGE_TAG}" ]; then
+              kubectl set image deployment/vault-guard vault-guard=${IMAGE_TAG} --record || true
+            fi
+
+            if [ -f kubernetes_manifest/service.yaml ]; then
+              kubectl apply -f kubernetes_manifest/service.yaml
+            fi
+
+            kubectl rollout status deployment/vault-guard --timeout=5m || true
+            kubectl get all --all-namespaces || true
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "Pipeline completed successfully."
+    }
+    failure {
+      echo "Pipeline failed - check logs."
+    }
+    always {
+      script {
+        try {
+          cleanWs()
+        } catch (err) {
+          echo "Skipping cleanWs(): ${err}"
+        }
+      }
+    }
+  }
+}
