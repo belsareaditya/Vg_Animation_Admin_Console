@@ -1,5 +1,6 @@
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
+  create_cloudwatch_log_group = false
   version = "19.15.1"
 
   cluster_name                   = local.name
