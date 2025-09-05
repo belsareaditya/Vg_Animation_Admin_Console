@@ -1,0 +1,171 @@
+pipeline {
+  agent any
+
+  parameters {
+    choice(name: 'ACTION', choices: ['apply', 'destroy'], description: 'Terraform action to perform in the final stage')
+  }
+
+  environment {
+    AWS_ACCESS_KEY_ID     = credentials('aws_access_key')
+    AWS_SECRET_ACCESS_KEY = credentials('secret_access_key')
+    AWS_DEFAULT_REGION    = 'ap-south-1'
+  }
+
+  stages {
+    stage('Checkout repo') {
+      steps {
+        checkout([$class: 'GitSCM',
+                  branches: [[name: '*/main']],
+                  userRemoteConfigs: [[url: 'https://github.com/belsareaditya/Vg_Animation_Admin_Console.git']]])
+        sh 'echo "Workspace contents:" && ls -la'
+      }
+    }
+
+    stage('Bootstrap & hints') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          sh '''
+            set -eux
+            echo "Build URL: ${BUILD_URL}"
+            # Optional: create a temporary versions.tf for quick CI testing if you haven't committed one.
+            # Recommended: commit a versions.tf into the repo instead of creating it in the pipeline.
+            if [ ! -f versions.tf ]; then
+              cat > versions.tf <<'TF'
+terraform {
+  required_version = ">= 1.3.0, < 2.0.0"
+  required_providers {
+    aws = { source = "hashicorp/aws", version = "~> 4.60" }
+  }
+}
+TF
+              echo "WROTE temporary versions.tf (remove this block from pipeline once versions.tf is committed)."
+            fi
+          '''
+        }
+      }
+    }
+
+    stage('Ensure Terraform') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          sh '''
+            set -eux
+            TF_VER=1.5.7
+            # If terraform is not installed on the agent, install into workspace/bin and use it locally
+            if ! command -v terraform >/dev/null 2>&1; then
+              mkdir -p $WORKSPACE/bin
+              curl -fsSL -o terraform.zip "https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip"
+              unzip -o terraform.zip -d $WORKSPACE/bin
+              export PATH=$WORKSPACE/bin:$PATH
+            fi
+            terraform --version
+          '''
+        }
+      }
+    }
+
+    stage('Clone App Code (optional build)') {
+      steps {
+        script {
+          dir('app') {
+            echo "Inside app folder:"
+            sh 'pwd; ls -la || true'
+          }
+        }
+      }
+    }
+
+    stage('Terraform Initialization') {
+      steps {
+        script {
+          dir('EKS_with_terraform_jenkins') {
+            sh 'terraform init -upgrade -input=false'
+          }
+        }
+      }
+    }
+
+    stage('Terraform Validation') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          sh '''
+            set -eux
+            echo "Validating terraform config..."
+            terraform validate
+          '''
+        }
+      }
+    }
+
+    stage('Infrastructure Checks (plan)') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          sh '''
+            set -eux
+            if [ -z "$(find . -maxdepth 2 -type f -name '*.tf' -print -quit)" ]; then
+              echo "ERROR: No .tf files found in $(pwd)"
+              ls -la
+              exit 1
+            fi
+            terraform plan -out=tfplan -input=false
+            echo "Terraform plan saved to tfplan"
+          '''
+        }
+
+        script {
+          echo "Approval required to ${params.ACTION} the infra."
+          echo "Open this build in Jenkins and click Proceed/Abort: ${env.BUILD_URL}"
+
+          // wrap input in timeout to avoid indefinite hang
+          timeout(time: 30, unit: 'MINUTES') {
+            def user = input(
+              message: "Approve to ${params.ACTION} the infra? (Proceed = apply/destroy)",
+              ok: "Proceed",
+              submitter: "admin,aditya",           // <-- replace with actual approver usernames or remove this line to allow any authenticated user
+              submitterParameter: 'APPROVER'
+            )
+            echo "Approval granted by: ${user}"
+            env.APPROVER = user
+          }
+        }
+      }
+    }
+
+    stage('Create/Destroy EKS cluster') {
+      steps {
+        dir('EKS_with_terraform_jenkins') {
+          sh '''
+            set -eux
+            echo "Action chosen: ${ACTION}"
+            echo "Approved by: ${APPROVER:-unknown}"
+            if [ ! -f tfplan ] && [ "${ACTION}" = "apply" ]; then
+              echo "ERROR: tfplan not found. Aborting apply."
+              ls -la
+              exit 1
+            fi
+
+            if [ "${ACTION}" = "apply" ]; then
+              terraform apply -input=false -auto-approve tfplan
+            else
+              terraform destroy -input=false -auto-approve
+            fi
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      echo 'Pipeline finished — collect logs/artifacts if needed'
+    }
+    success {
+      // archive plan for traceability when present
+      archiveArtifacts artifacts: 'EKS_with_terraform_jenkins/tfplan', allowEmptyArchive: true
+      echo "Pipeline succeeded."
+    }
+    failure {
+      echo 'Pipeline failed — check the console output for failing step'
+    }
+  }
+}
