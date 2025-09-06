@@ -1,6 +1,6 @@
 locals {
   region = "ap-south-1"
-  name   = "aditya-eks-cluster"
+  name   = "Aditya-eks-Cluster"
   vpc_cidr = "10.123.0.0/16"
   azs      = ["ap-south-1a", "ap-south-1b"]
   public_subnets  = ["10.123.1.0/24", "10.123.2.0/24"]
