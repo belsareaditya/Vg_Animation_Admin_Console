@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -20,7 +19,9 @@ export default function AdminDashboard(){
   },[]);
 
   return (
-    <div className="min-h-screen w-full bg-[#f5f7fb] text-slate-900 overflow-y-auto no-scrollbar scroll-smooth">\n      <style>{`.no-scrollbar{ -ms-overflow-style: none; scrollbar-width: none; } html{ scroll-behavior:smooth; } .no-scrollbar::-webkit-scrollbar{ width: 0; height: 0; }`}</style>
+    <div className="min-h-screen w-full bg-[#f5f7fb] text-slate-900 overflow-y-auto no-scrollbar scroll-smooth">
+      <style>{`.no-scrollbar{ -ms-overflow-style: none; scrollbar-width: none; } html{ scroll-behavior:smooth; } .no-scrollbar::-webkit-scrollbar{ width: 0; height: 0; }`}</style>
+
       {/* Top Bar */}
       <div className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center gap-2 font-extrabold tracking-wide">
@@ -35,58 +36,63 @@ export default function AdminDashboard(){
 
       <div className="px-6 py-5 text-2xl font-extrabold">Welcome Aditya</div>
 
-      <div className="px-6 grid grid-cols-[240px,1fr] gap-6 pb-10">
-        {/* Sidebar */}
-        <aside className="rounded-xl border border-slate-800 p-3 bg-[#0f172a] text-white h-fit">
-          <div className="text-xs font-semibold mb-2">MAIN</div>
-          <ul className="space-y-1">
-            <li className="px-3 py-2 rounded-lg bg-slate-800/60">Dashboard</li>
-            <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Subscriptions</li>
-            <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Security Logs</li>
-            <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Feedback</li>
-            <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Settings</li>
-          </ul>
-        </aside>
+      {/* ====== IMPORTANT: full-bleed grid wrapper ======
+          grid-cols uses minmax(0,1fr) so the second column can shrink/grow,
+          w-full + max-w-none prevents any ancestor max-width from centering */}
+      <div className="px-6">
+        <div className="grid grid-cols-[240px,minmax(0,1fr)] gap-6 pb-10 w-full max-w-none">
+          {/* Sidebar */}
+          <aside className="rounded-xl border border-slate-800 p-3 bg-[#0f172a] text-white h-fit">
+            <div className="text-xs font-semibold mb-2">MAIN</div>
+            <ul className="space-y-1">
+              <li className="px-3 py-2 rounded-lg bg-slate-800/60">Dashboard</li>
+              <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Subscriptions</li>
+              <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Security Logs</li>
+              <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Feedback</li>
+              <li className="px-3 py-2 rounded-lg hover:bg-slate-800/60">Settings</li>
+            </ul>
+          </aside>
 
-        {/* Content grid */}
-        <main className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-auto [grid-auto-flow:row_dense]">
-          <Card className={randSpan(0.18)}>
-            <div className="flex items-center justify-between h-full">
-              <div>
-                <div className="font-semibold">Total Earnings This Month</div>
-                <div className="text-xs">Auto-updates on purchase</div>
+          {/* Content grid */}
+          <main className="grid grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-auto [grid-auto-flow:row_dense] min-w-0">
+            <Card className={randSpan(0.18)}>
+              <div className="flex items-center justify-between h-full">
+                <div>
+                  <div className="font-semibold">Total Earnings This Month</div>
+                  <div className="text-xs">Auto-updates on purchase</div>
+                </div>
+                <div className="text-3xl font-black text-emerald-600"><EarningsWidget/></div>
               </div>
-              <div className="text-3xl font-black text-emerald-600"><EarningsWidget/></div>
-            </div>
-          </Card>
+            </Card>
 
-          <TransactionList className={"col-span-2 "+randSpan(0.12)} />
-          <TransactionsTicker className={randSpan()} />
-          <TargetProgress target={50000} className={randSpan()} />
-          <SecurityHealth className={randSpan()} />
+            <TransactionList className={"col-span-2 "+randSpan(0.12)} />
+            <TransactionsTicker className={randSpan()} />
+            <TargetProgress target={50000} className={randSpan()} />
+            <SecurityHealth className={randSpan()} />
 
-          <PriceSpark title="Bitcoin Price"   price="₹9,626"  color="text-indigo-300" mode="up"       className={randSpan()} />
-          <PriceBars  title="Ethereum Price"  price="₹7,831"  color="text-pink-300"   variant="down"  className={randSpan()} />
-          <PriceBars  title="Ripple Price"    price="₹1,239"  color="text-violet-300" variant="range" className={randSpan()} />
-          <PriceBars  title="Litecoin Price"  price="₹849"    color="text-amber-300"  variant="volatile" className={randSpan()} />
+            <PriceSpark title="Daily Earning"   price="₹9,626"  color="text-indigo-300" mode="up"       className={randSpan()} />
+            <PriceBars  title="Market"  price="₹7,831"  color="text-pink-300"   variant="down"  className={randSpan()} />
+            <PriceBars  title="Ripple Price"    price="₹1,239"  color="text-violet-300" variant="range" className={randSpan()} />
+            <PriceBars  title="Litecoin Price"  price="₹849"    color="text-amber-300"  variant="volatile" className={randSpan()} />
 
-          <SubscriptionsOverview className={randSpan()} />
-          <GrowthTrend className={randSpan()} />
-          <SatisfactionCard className={randSpan()} />
-          <RevenueTrend className={"col-span-2 "+randSpan(0.2)} />
-          <FeedbackSection className={randSpan()} />
-          <EventsFeed className={randSpan()} />
-          <LiveClock className={randSpan(0.14)} />
+            <SubscriptionsOverview className={randSpan()} />
+            <GrowthTrend className={randSpan()} />
+            <SatisfactionCard className={randSpan()} />
+            <RevenueTrend className={"col-span-2 "+randSpan(0.2)} />
+            <FeedbackSection className={randSpan()} />
+            <EventsFeed className={randSpan()} />
+            <LiveClock className={randSpan(0.14)} />
 
-          {/* ---- New Analytics Row ---- */}
-          <KPI label="Users" value="28.05k" trend={16.24} />
-          <KPI label="Sessions" value="97.66k" trend={-3.96} />
-          <KPI label="Avg. Visit Duration" value="3m 40sec" trend={-0.24} />
-          <KPI label="Bounce Rate" value="33.48%" trend={7.05} />
-          <CountriesChart className={randSpan(0.15)+" mb-2"} />
-          <DeviceDonut />
-          <RecentOrders />
-        </main>
+            {/* ---- New Analytics Row ---- */}
+            <KPI label="Users" value="28.05k" trend={16.24} />
+            <KPI label="Sessions" value="97.66k" trend={-3.96} />
+            <KPI label="Avg. Visit Duration" value="3m 40sec" trend={-0.24} />
+            <KPI label="Bounce Rate" value="33.48%" trend={7.05} />
+            <CountriesChart className={randSpan(0.15)+" mb-2"} />
+            <DeviceDonut />
+            <RecentOrders />
+          </main>
+        </div>
       </div>
     </div>
   );
@@ -109,10 +115,10 @@ function ShieldIcon(){
   );
 }
 
-function ChatIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="2" d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-4A4 4 0 0 1 1 14V7a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v8z"/></svg>);}
-function BellIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="2" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14v-3a6 6 0 1 0-12 0v3a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 1 1-6 0"/></svg>);}
-function ClockIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 animate-spin" style={{animationDuration:'6s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path strokeWidth="2" d="M12 7v5l3 3"/></svg>);}
-function UsersIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 motion-safe:animate-[float_3s_ease-in-out_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="2" d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4" strokeWidth="2"/><path strokeWidth="2" d="M23 21v-2a4 4 0 0 0-3-3.87"/><path strokeWidth="2" d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>);}
+function ChatIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 animate-bounce" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="2" d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-4A4 4 0 0 1 1 14V7a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v8z"/></svg>); }
+function BellIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="2" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14v-3a6 6 0 1 0-12 0v3a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 1 1-6 0"/></svg>); }
+function ClockIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 animate-spin" style={{animationDuration:'6s'}} viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path strokeWidth="2" d="M12 7v5l3 3"/></svg>); }
+function UsersIcon(){return (<svg className="w-5 h-5 md:w-6 md:h-6 motion-safe:animate-[float_3s_ease-in-out_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeWidth="2" d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4" strokeWidth="2"/><path strokeWidth="2" d="M23 21v-2a4 4 0 0 0-3-3.87"/><path strokeWidth="2" d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>); }
 
 
 
@@ -264,21 +270,177 @@ function SubscriptionsOverview({className=""}){
     return `M50,50 L${sx},${sy} A42,42 0 ${L} 1 ${ex},${ey} Z`;
   };
   return (
+    /* ---------- Subscriptions Overview (animated donut) ---------- */
+function SubscriptionsOverview({ className = "" }) {
+  // simulate live changing values (replace with real data source if available)
+  const [vals, setVals] = React.useState({ active: 75, expired: 18, trial: 7 });
+
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setVals(v => {
+        // gently vary active between 60 and 90; keep expired ~ constant; recompute trial
+        const active = Math.max(60, Math.min(90, Math.round(v.active + (Math.random() - 0.5) * 2.5)));
+        const expired = 18; // keep stable for demo
+        const trial = Math.max(0, 100 - active - expired);
+        return { active, expired, trial };
+      });
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+
+  // convert to fractions
+  const total = vals.active + vals.expired + vals.trial || 1;
+  const a = vals.active / total;
+  const e = vals.expired / total;
+  const t = vals.trial / total;
+
+  // circle geometry (donut)
+  const r = 42;
+  const stroke = 18;
+  const cx = 50;
+  const cy = 50;
+  const circumference = 2 * Math.PI * r;
+
+  // compute stroke dash for a segment starting at startFrac with length frac
+  const seg = (startFrac, frac) => {
+    const length = Math.max(0, Math.min(1, frac)) * circumference;
+    const dashArray = `${length} ${circumference}`;
+    const offset = Math.round(circumference * (1 - startFrac));
+    return { dashArray, offset };
+  };
+
+  const segA = seg(0, a);
+  const segE = seg(a, e);
+  const segT = seg(a + e, t);
+
+  // animated central number (active %)
+  const [displayPct, setDisplayPct] = React.useState(Math.round(a * 100));
+  const prevRef = React.useRef(Math.round(a * 100));
+  React.useEffect(() => {
+    const target = Math.round(a * 100);
+    const start = prevRef.current;
+    const dur = 700;
+    let raf = null;
+    const t0 = performance.now();
+    const tick = (tnow) => {
+      const p = Math.min(1, (tnow - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+      const cur = Math.round(start + (target - start) * eased);
+      setDisplayPct(cur);
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else prevRef.current = target;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [a]);
+
+  // small styles for smooth arc transitions and subtle glow
+  const svgStyle = {
+    width: "100%",
+    maxWidth: "220px",
+    margin: "0 auto",
+    display: "block",
+  };
+
+  return (
     <Card className={className}>
+      <style>{`
+        .sg-arc { transition: stroke-dasharray 850ms cubic-bezier(.2,.9,.3,1), stroke-dashoffset 850ms cubic-bezier(.2,.9,.3,1); transform-origin: 50% 50%; }
+        .sg-arc.delay-1 { transition-delay: 80ms; }
+        .sg-arc.delay-2 { transition-delay: 220ms; }
+        .sg-glow { filter: drop-shadow(0 6px 10px rgba(99,102,241,0.08)); }
+      `}</style>
+
       <div className="font-semibold mb-2">Subscriptions Overview</div>
-      <svg viewBox="0 0 100 100" className="w-full max-w-[220px] mx-auto">
-        <path d={arc(-Math.PI/2, a)} fill="#10b981" opacity="0.85"/>
-        <path d={arc(-Math.PI/2 + a*2*Math.PI, e)} fill="#60a5fa" opacity="0.85"/>
-        <path d={arc(-Math.PI/2 + (a+e)*2*Math.PI, t)} fill="#a78bfa" opacity="0.85"/>
-        <circle cx="50" cy="50" r="28" fill="#f5f7fb"/>
-        <text x="50" y="54" textAnchor="middle" style={{fill:"white",fontWeight:800,fontSize:"18px"}}>{Math.round(a*100)}%</text>
+
+      <svg viewBox="0 0 100 100" style={svgStyle} aria-hidden>
+        <defs>
+          <linearGradient id="gActive" x1="0" x2="1">
+            <stop offset="0%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#34d399" />
+          </linearGradient>
+          <linearGradient id="gExpired" x1="0" x2="1">
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="100%" stopColor="#6366f1" />
+          </linearGradient>
+          <linearGradient id="gTrial" x1="0" x2="1">
+            <stop offset="0%" stopColor="#a78bfa" />
+            <stop offset="100%" stopColor="#f472b6" />
+          </linearGradient>
+        </defs>
+
+        {/* rotate so 12 o'clock is start */}
+        <g transform="rotate(-90 50 50)">
+          {/* background ring */}
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+
+          {/* Active arc */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="url(#gActive)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            className="sg-arc sg-glow delay-0"
+            strokeDasharray={segA.dashArray}
+            strokeDashoffset={segA.offset}
+          />
+
+          {/* Expired arc */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="url(#gExpired)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            className="sg-arc delay-1"
+            strokeDasharray={segE.dashArray}
+            strokeDashoffset={segE.offset}
+          />
+
+          {/* Trial arc */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="url(#gTrial)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            className="sg-arc delay-2"
+            strokeDasharray={segT.dashArray}
+            strokeDashoffset={segT.offset}
+          />
+        </g>
+
+        {/* inner circle and center text */}
+        <circle cx="50" cy="50" r="28" fill="#f5f7fb" />
+        <text x="50" y="54" textAnchor="middle" style={{ fill: "#0f172a", fontWeight: 800, fontSize: "16px" }}>
+          {displayPct}%
+        </text>
+        <text x="50" y="72" textAnchor="middle" style={{ fill: "#6b7280", fontSize: "10px" }}>
+          Active
+        </text>
       </svg>
+
       <div className="mt-2 text-sm grid grid-cols-3 gap-2">
-        <div>Active</div><div className="col-span-2 font-semibold">{Math.round(a*100)}%</div>
-        <div>Expired</div><div className="col-span-2 font-semibold">{Math.round(e*100)}%</div>
-        <div>Trial</div><div className="col-span-2 font-semibold">{Math.round(t*100)}%</div>
+        <div className="text-slate-600">Active</div>
+        <div className="col-span-2 font-semibold">{Math.round(a * 100)}%</div>
+
+        <div className="text-slate-600">Expired</div>
+        <div className="col-span-2 font-semibold">{Math.round(e * 100)}%</div>
+
+        <div className="text-slate-600">Trial</div>
+        <div className="col-span-2 font-semibold">{Math.round(t * 100)}%</div>
       </div>
     </Card>
+  );
+}
+
   );
 }
 
@@ -380,12 +542,11 @@ function TransactionList({className=""}){
 
 /* ---------- live payments ticker (5 at a time from 100) ---------- */
 // Names + helpers
-const FIRST = ["Ravi","Ananya","Karan","Priya","Arjun","Neha","Ishaan","Diya","Kabir","Aarav","Aadhya","Vihaan","Myra","Advait","Ira","Aisha","Rohit","Riya","Ankit","Sana"];
-const LAST  = ["Sharma","Patel","Mehta","Nair","Singh","Gupta","Verma","Iyer","Das","Kulkarni","Bansal","Kapoor","Khanna","Joshi","Chopra","Kaur"];
+const FIRST = ["Aditya","Yash","Nitesh","Aman","Nimish","Anurag","Soham","Pundlik","Pratibha","Pratik","Niranjan Da"];
 
-const randName = (i)=> FIRST[i % FIRST.length] + " " + LAST[(i * 7) % LAST.length];
+const randName = (i) => FIRST[i % FIRST.length];
 
-const avatar = (name, idx)=>{
+const avatar = (name, idx) => {
   const colors = ['#60a5fa','#a78bfa','#34d399','#f59e0b','#f472b6','#22d3ee'];
   const bg = colors[idx % colors.length];
   const initial = name[0].toUpperCase();
@@ -393,7 +554,7 @@ const avatar = (name, idx)=>{
   return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
 };
 
-const buildSeed = (n=100)=> Array.from({length:n}, (_,i)=>{
+const buildSeed = (n=100) => Array.from({length:n}, (_,i) => {
   const name = randName(i);
   return {
     id: i,
@@ -404,14 +565,13 @@ const buildSeed = (n=100)=> Array.from({length:n}, (_,i)=>{
   };
 });
 
-// ✅ renamed to avoid "Identifier 'INR' has already been declared"
+// renamed to avoid "Identifier 'INR' has already been declared"
 const formatINR = (amt)=> "₹" + Number(amt).toLocaleString("en-IN");
 
 /* ---------- Component ---------- */
 function TransactionsTicker({ className = "" }) {
   const seed = React.useMemo(() => buildSeed(100), []);
   const [live, setLive] = React.useState(() => {
-    // seed first 5 and tag with uid so keys are unique
     return seed.slice(0, 5).map((t, idx) => ({ ...t, uid: `init-${idx}-${Date.now()}` }));
   });
 
@@ -423,7 +583,7 @@ function TransactionsTicker({ className = "" }) {
 
         const replacement = {
           ...seed[randomSeedIdx],
-          uid: `${Date.now()}-${randomSeedIdx}` // force a fresh key
+          uid: `${Date.now()}-${randomSeedIdx}`
         };
 
         const newList = [...list];
@@ -431,7 +591,6 @@ function TransactionsTicker({ className = "" }) {
         return newList;
       });
 
-      // optional event hook for analytics
       try { window.dispatchEvent(new Event("payment:recorded")); } catch {}
     }, 2000);
 
@@ -456,12 +615,6 @@ function TransactionsTicker({ className = "" }) {
   );
 }
 
-// export if needed
-// export default Transactions
-
-
-
-
 /* ---------- feedback / events / clock ---------- */
 
 function FeedbackSection({className=""}){
@@ -469,11 +622,11 @@ function FeedbackSection({className=""}){
     const key='feedbacks'; const existing=JSON.parse(localStorage.getItem(key)||'[]');
     if(!existing.length){
       localStorage.setItem(key, JSON.stringify([
-        {name:'Ravi Sharma', text:'VaultGuard is super secure and easy to use!'},
-        {name:'Ananya Patel', text:'Loved the smooth login animation.'},
-        {name:'Karan Mehta', text:'Great dashboard, very user friendly.'},
-        {name:'Priya Nair', text:'Please add more recovery options.'},
-        {name:'Arjun Singh', text:'Dark mode looks amazing on mobile.'},
+        {name:'Aditya Belsare', text:'VaultGuard is super secure and easy to use!'},
+        {name:'Yash Patil', text:'Loved the smooth login animation.'},
+        {name:'Nimish Lanjewar', text:'Great dashboard, very user friendly.'},
+        {name:'Nitesh', text:'Please add more recovery options.'},
+        {name:'Saksham Shinde', text:'Dark mode looks amazing on mobile.'},
       ]));
     }
   }catch{}
@@ -498,7 +651,6 @@ function FeedbackSection({className=""}){
     </Card>
   );
 }
-
 
 function EventsFeed({className=""}){
   const [events,setEvents]=React.useState([
@@ -531,7 +683,6 @@ function EventsFeed({className=""}){
   );
 }
 
-
 function LiveClock({ className = "" }) {
   const [now, setNow] = React.useState(new Date());
   React.useEffect(() => {
@@ -542,7 +693,6 @@ function LiveClock({ className = "" }) {
   return (
     <Card className={`relative aspect-square p-5 ${className}`}>
       <div className="flex flex-col h-full">
-        {/* Top row: icon + label (no absolute -> no overlap) */}
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-slate-100 text-slate-900 p-2">
             <ClockIcon />
@@ -550,7 +700,6 @@ function LiveClock({ className = "" }) {
           <div className="text-sm text-slate-500">System Time</div>
         </div>
 
-        {/* Centered main content */}
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <div className="mt-1 text-3xl md:text-4xl font-extrabold leading-none">
             {now.toLocaleTimeString()}
@@ -562,14 +711,11 @@ function LiveClock({ className = "" }) {
   );
 }
 
-
-
 /* ---------- Analytics KPI Cards ---------- */
 
 function KPI({label, value, trend, className=""}){
   const up = Number(trend||0) >= 0;
   const color = up ? "text-emerald-600" : "text-rose-600";
-  // Special style for Users small square
   const isUsers = String(label).toLowerCase() === 'users';
   if(isUsers){
     return (
@@ -592,23 +738,21 @@ function KPI({label, value, trend, className=""}){
   );
 }
 
-
-/* ---------- Sessions by Countries (horizontal bars) ---------- */
+/* ---------- Sessions by Countries (horizontal bars with India dominant) ---------- */
 function CountriesChart({ className = "" }) {
   const base = [
-    { name: "India", v: 1010, c: "#7c3aed", cc: "IN" },
-    { name: "United States", v: 1640, c: "#5b21b6", cc: "US" },
-    { name: "China", v: 490, c: "#22d3ee", cc: "CN" },
-    { name: "Indonesia", v: 1255, c: "#06b6d4", cc: "ID" },
-    { name: "Russia", v: 1050, c: "#fb7185", cc: "RU" },
-    { name: "Bangladesh", v: 689, c: "#6366f1", cc: "BD" },
+    { name: "India", v: 5000, c: "#7c3aed", cc: "IN" },
+    { name: "United States", v: 1600, c: "#5b21b6", cc: "US" },
+    { name: "China", v: 500, c: "#22d3ee", cc: "CN" },
+    { name: "Indonesia", v: 1200, c: "#06b6d4", cc: "ID" },
+    { name: "Russia", v: 1000, c: "#fb7185", cc: "RU" },
+    { name: "Bangladesh", v: 700, c: "#6366f1", cc: "BD" },
     { name: "Canada", v: 800, c: "#4f46e5", cc: "CA" },
-    { name: "Brazil", v: 420, c: "#f59e0b", cc: "BR" },
-    { name: "Vietnam", v: 1085, c: "#7c3aed", cc: "VN" },
-    { name: "UK", v: 589, c: "#6366f1", cc: "GB" },
+    { name: "Brazil", v: 450, c: "#f59e0b", cc: "BR" },
+    { name: "Vietnam", v: 1100, c: "#7c3aed", cc: "VN" },
+    { name: "UK", v: 600, c: "#6366f1", cc: "GB" },
   ];
 
-  // country-code (cc) -> emoji flag
   const flag = (cc) =>
     cc
       ? String.fromCodePoint(...[...cc.toUpperCase()].map(ch => 127397 + ch.charCodeAt()))
@@ -616,20 +760,24 @@ function CountriesChart({ className = "" }) {
 
   const [vals, setVals] = React.useState(base);
 
-  // animate values periodically
   React.useEffect(() => {
     const id = setInterval(() => {
       setVals((v) =>
-        v.map(it => ({
-          ...it,
-          v: Math.max(200, Math.round(it.v + (Math.random() - 0.5) * 80)),
-        }))
+        v.map(it => {
+          if (it.name === "India") {
+            // keep India high & stable with slight variation
+            const base = 4000;
+            return { ...it, v: Math.max(4000, Math.round(base + (Math.random() - 0.5) * 200)) };
+          } else {
+            // other countries fluctuate more, but smaller
+            return { ...it, v: Math.max(200, Math.round(it.v + (Math.random() - 0.5) * 150)) };
+          }
+        })
       );
-    }, 1800);
+    }, 2000);
     return () => clearInterval(id);
   }, []);
 
-  // keep India on top; sort others by value desc
   const ordered = React.useMemo(() => {
     const india = vals.find(x => x.name === "India");
     const rest = vals.filter(x => x.name !== "India").sort((a, b) => b.v - a.v);
@@ -639,10 +787,10 @@ function CountriesChart({ className = "" }) {
   const max = Math.max(...ordered.map(x => x.v));
 
   return (
-    <Card className={"col-span-4 " + className}> {/* wider in grid; use col-span-full for full width */}
+    <Card className={"col-span-4 " + className}>
       <div className="font-semibold mb-3">Sessions by Countries</div>
       <div className="space-y-2 overflow-x-auto">
-        <div className="min-w-[720px]">
+        <div className="min-w-0">
           {ordered.map((r, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="w-36 flex items-center gap-2 text-sm text-black">
@@ -656,7 +804,7 @@ function CountriesChart({ className = "" }) {
                   style={{
                     width: `${(r.v / max) * 100}%`,
                     background: r.c,
-                    transition: "width .8s ease",
+                    transition: "width 1s ease",
                   }}
                   aria-label={`${r.name} sessions`}
                 />
@@ -671,50 +819,116 @@ function CountriesChart({ className = "" }) {
   );
 }
 
-/* ---------- Users by Device (donut, wide) ---------- */
-function DeviceDonut({ className = "col-span-4" }) {
-  const [vals, setVals] = React.useState({ desktop: 78560, mobile: 105020, tablet: 42890 });
 
+/* ---------- Users by Device (animated donut) ---------- */
+function DeviceDonut({ className = "col-span-4" }) {
+  // example initial numbers (you can set these from props or state)
+  const [vals, setVals] = React.useState({ desktop: 78520, mobile: 99210, tablet: 42890 });
+
+  // simulate live updates (remove this in real data scenario)
   React.useEffect(() => {
     const id = setInterval(() => {
       setVals(v => {
-        const d = Math.max(50000, v.desktop + Math.round((Math.random() - 0.5) * 1200));
-        const m = Math.max(70000, v.mobile + Math.round((Math.random() - 0.5) * 1600));
-        const t = Math.max(20000, v.tablet + Math.round((Math.random() - 0.5) * 900));
+        const d = Math.max(20000, v.desktop + Math.round((Math.random() - 0.5) * 4000));
+        const m = Math.max(20000, v.mobile  + Math.round((Math.random() - 0.5) * 6000));
+        const t = Math.max(5000,  v.tablet  + Math.round((Math.random() - 0.5) * 3000));
         return { desktop: d, mobile: m, tablet: t };
       });
-    }, 2200);
+    }, 3000);
     return () => clearInterval(id);
   }, []);
 
   const total = vals.desktop + vals.mobile + vals.tablet;
-  const pct = (x) => x / total;
+  const pd = total ? vals.desktop / total : 0;
+  const pm = total ? vals.mobile  / total : 0;
+  const pt = total ? vals.tablet  / total : 0;
 
-  const arc = (start, frac, color) => {
-    const r = 46, cx = 60, cy = 60; // slightly larger donut
-    const end = start + frac * 2 * Math.PI;
-    const sx = cx + r * Math.cos(start), sy = cy + r * Math.sin(start);
-    const ex = cx + r * Math.cos(end),   ey = cy + r * Math.sin(end);
-    const large = frac > 0.5 ? 1 : 0;
-    return <path d={`M${cx},${cy} L${sx},${sy} A${r},${r} 0 ${large} 1 ${ex},${ey} Z`} fill={color} opacity="0.9" />;
+  // circle geometry
+  const r = 46; // radius
+  const stroke = 18; // width of donut stroke
+  const cx = 60, cy = 60;
+  const circumference = 2 * Math.PI * r;
+
+  // helper to produce stroke-dasharray and dashoffset to position segments in order
+  // we draw segments in order: desktop, mobile, tablet
+  const seg = (startFrac, frac) => {
+    const length = Math.max(0, Math.min(1, frac)) * circumference;
+    const dashArray = `${length} ${circumference}`; // visible length then gap
+    // offset moves the start of this segment; SVG coord rotated -90deg below
+    const offset = circumference * (1 - startFrac);
+    return { dashArray, offset };
   };
 
-  const a = pct(vals.desktop), b = pct(vals.mobile), c = pct(vals.tablet);
+  // cumulative starts
+  const startDesktop = 0;
+  const startMobile = pd;
+  const startTablet = pd + pm;
+
+  const segD = seg(startDesktop, pd);
+  const segM = seg(startMobile, pm);
+  const segT = seg(startTablet, pt);
+
+  // nice formatted numbers
+  const fmt = n => n.toLocaleString();
+  const pctStr = n => (n * 100).toFixed(1) + "%";
 
   return (
     <Card className={className}>
       <div className="font-semibold mb-3">Users by Device</div>
 
-      {/* wider content area; set a min width so labels never feel cramped */}
-      <div className="grid grid-cols-[300px,1fr] gap-8 items-center overflow-x-auto">
-        <svg viewBox="0 0 120 120" className="w-[260px] min-w-[260px]">
-          {arc(-Math.PI/2, a, "#4f46e5")}
-          {arc(-Math.PI/2 + a*2*Math.PI, b, "#f59e0b")}
-          {arc(-Math.PI/2 + (a+b)*2*Math.PI, c, "#06b6d4")}
-          <circle cx="60" cy="60" r="30" fill="#f5f7fb" />
+      <div className="grid grid-cols-[220px,1fr] gap-6 items-center">
+        <svg viewBox="0 0 120 120" className="w-[220px] min-w-[220px]">
+          {/* background ring */}
+          <g transform="rotate(-90 60 60)">
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth={stroke} />
+            {/* Desktop segment (bottom-most) */}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke="#4f46e5"
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={segD.dashArray}
+              strokeDashoffset={segD.offset}
+              style={{ transition: "stroke-dasharray 700ms ease, stroke-dashoffset 700ms ease" }}
+            />
+            {/* Mobile (middle) */}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={segM.dashArray}
+              strokeDashoffset={segM.offset}
+              style={{ transition: "stroke-dasharray 700ms ease, stroke-dashoffset 700ms ease" }}
+            />
+            {/* Tablet (top) */}
+            <circle
+              cx={cx}
+              cy={cy}
+              r={r}
+              fill="none"
+              stroke="#06b6d4"
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={segT.dashArray}
+              strokeDashoffset={segT.offset}
+              style={{ transition: "stroke-dasharray 700ms ease, stroke-dashoffset 700ms ease" }}
+            />
+          </g>
+
+          {/* inner circle / label */}
+          <circle cx={60} cy={60} r={28} fill="#f5f7fb" />
+          <text x="60" y="54" textAnchor="middle" style={{fill:"#0f172a", fontWeight:800, fontSize:"14px"}}>{fmt(total)}</text>
+          <text x="60" y="72" textAnchor="middle" style={{fill:"#6b7280", fontSize:"11px"}}>total users</text>
         </svg>
 
-        <div className="space-y-4 min-w-[360px]">
+        <div className="space-y-3">
           <LegendDot color="#4f46e5" label="Desktop Users" value={vals.desktop} total={total} />
           <LegendDot color="#f59e0b" label="Mobile Users"  value={vals.mobile}  total={total} />
           <LegendDot color="#06b6d4" label="Tablet Users"  value={vals.tablet}  total={total} />
@@ -728,29 +942,44 @@ function LegendDot({ color, label, value, total }) {
   const percent = total ? ((value / total) * 100).toFixed(1) : 0;
   return (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <span className="w-3 h-3 rounded-sm" style={{ background: color }} />
-        <span className="text-sm text-black">{label}</span>
+        <div className="text-sm">
+          <div className="font-medium">{label}</div>
+          <div className="text-xs text-slate-500">{percent}%</div>
+        </div>
       </div>
       <div className="text-sm font-semibold tabular-nums">
-        {value.toLocaleString()} <span className="text-slate-500 font-normal">({percent}%)</span>
+        {value.toLocaleString()}
       </div>
     </div>
   );
 }
+/* ---------- Recent Orders (table with random 2025 dates + headings) ---------- */
+function RecentOrders({className=""}) {
+  // helper → random date in 2025
+  const randomDate2025 = () => {
+    const start = new Date("2025-01-01").getTime();
+    const end = new Date("2025-12-31").getTime();
+    const ts = start + Math.random() * (end - start);
+    return new Date(ts).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+  };
 
-/* ---------- Recent Orders (table) ---------- */
-function RecentOrders({className=""}){
-  const seed = React.useMemo(()=>[
-    ["#VZ2112","Yash Patil","Clothes",109.00,"Zoetic Fashion","Paid",5.0],
-    ["#VZ2111","Jansh Brown","Kitchen Storage",149.00,"Micro Design","Pending",4.5],
-    ["#VZ2109","Ayaan Bowen","Bike Accessories",215.00,"Nesta Technologies","Paid",4.9],
-    ["#VZ2108","Prezy Mark","Furniture",199.00,"Syntyce Solutions","Unpaid",4.3],
-    ["#VZ2107","Vihan Hudda","Bags and Wallets",330.00,"iTest Factory","Paid",4.7],
-  ],[]);
-  
+  // seed rows
+  const seed = React.useMemo(() => [
+    ["#SP001","Yash Patil","Purchased",109.00,"Paid",5.0],
+    ["#PP001","Aditya Belsare","Purchased",149.00,"Pending",4.5],
+    ["#FP001","Nimish Lanjewar","Purchased",215.00,"Paid",4.9],
+    ["#LP001","Prathamesh M","Purchased",199.00,"Unpaid",4.3],
+    ["#LF001","Nitesh","Purchased",330.00,"Paid",4.7],
+  ].map(r => [...r, randomDate2025()]), []); // add date as last element
+
   return (
-    <Card className={"col-span-4 "+className}> {/* span more columns */}
+    <Card className={"col-span-4 "+className}>
       <div className="flex items-center justify-between mb-3">
         <div className="font-semibold text-lg">Recent Orders</div>
         <button className="px-3 py-1 rounded bg-slate-100 hover:bg-white/20 text-sm">
@@ -759,41 +988,41 @@ function RecentOrders({className=""}){
       </div>
 
       <div className="overflow-x-auto max-h-[360px]">
-        <table className="w-full min-w-[900px] text-sm"> {/* min width for spacing */}
-          <thead className="text-white/80">
+        <table className="w-full min-w-0 text-sm">
+          <thead className="bg-slate-800 text-white">
             <tr className="text-left">
-              <th className="py-2 pr-4">Order ID</th>
-              <th className="pr-4">Customer</th>
-              <th className="pr-4">Product</th>
-              <th className="pr-4">Amount</th>
-              <th className="pr-4">Vendor</th>
-              <th className="pr-4">Status</th>
-              <th className="pr-4">Rating</th>
+              <th className="py-2 px-3">Order ID</th>
+              <th className="px-3">Customer</th>
+              <th className="px-3">Product</th>
+              <th className="px-3">Amount</th>
+              <th className="px-3">Date</th> {/* ✅ new column heading */}
+              <th className="px-3">Status</th>
+              <th className="px-3">Rating</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200">
             {seed.map((r,i)=>(
               <tr key={i} className="hover:bg-slate-50">
-                <td className="py-2">{r[0]}</td>
-                <td>{r[1]}</td>
-                <td>{r[2]}</td>
-                <td className="font-semibold text-emerald-600">
+                <td className="py-2 px-3 font-medium">{r[0]}</td>
+                <td className="px-3">{r[1]}</td>
+                <td className="px-3">{r[2]}</td>
+                <td className="px-3 font-semibold text-emerald-600">
                   ₹{Math.round(r[3]*83).toLocaleString('en-IN')}
                 </td>
-                <td>{r[4]}</td>
-                <td>
+                <td className="px-3">{r[6]}</td> {/* date */}
+                <td className="px-3">
                   <span className={
                     "px-2 py-0.5 rounded text-xs "+
-                    (r[5]==='Paid'
+                    (r[4]==='Paid'
                       ?'bg-emerald-100 text-emerald-700'
-                      :r[5]==='Pending'
+                      :r[4]==='Pending'
                         ?'bg-amber-100 text-amber-700'
                         :'bg-rose-100 text-rose-700')
                   }>
-                    {r[5]}
+                    {r[4]}
                   </span>
                 </td>
-                <td>{r[6]}</td>
+                <td className="px-3">{r[5]}</td>
               </tr>
             ))}
           </tbody>
@@ -802,3 +1031,4 @@ function RecentOrders({className=""}){
     </Card>
   );
 }
+
