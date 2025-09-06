@@ -24,7 +24,7 @@ pipeline {
     stage('Source Code Checkout') {
       steps {
         cleanWs()
-        git branch: 'main', url: 'https://github.com/belsareaditya/Vg_Animation.git'
+        git branch: 'main', url: 'https://github.com/belsareaditya/Vg_Animation_Admin_Console.git'
       }
     }
 
