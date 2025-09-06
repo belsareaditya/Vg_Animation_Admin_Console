@@ -15,7 +15,11 @@ Hi there! Welcome to my new project\
 | **Security**        | ![OWASP](https://img.shields.io/badge/OWASP-000000?style=flat-square&logo=owasp&logoColor=white) ![Trivy](https://img.shields.io/badge/Trivy-00979D?style=flat-square&logo=trivy&logoColor=white)         |
 | **Terraform**       | ![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=flat-square&logo=terraform&logoColor=white)
 ---
+
+
 ## 🚦 **Project Stages**
+
+![phases](https://github.com/user-attachments/assets/50501fe2-aebe-4a74-b692-b4dede005f55)
 
 ### **Phase 1: Deployment to Docker Container**
 - Containerize the application using Docker.
