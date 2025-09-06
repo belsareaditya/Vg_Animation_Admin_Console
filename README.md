@@ -1,4 +1,5 @@
-<img width="81" height="25" alt="image" src="https://github.com/user-attachments/assets/53a508ac-d494-4c89-8604-de372e8683eb" />## Hi there! Welcome to my new project
+Hi there! Welcome to my new project\
+
 **Welcome to the Vault Gaurd project! This project demonstrates how to deploy Node js application on EKS cluster using modern DevOps tools, practices and following a DevSecOps approach.**
 
 ## 🛠️ **Tools & Services Used**
