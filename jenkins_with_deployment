@@ -12,23 +12,23 @@ pipeline {
     IMAGE_TAG      = "${DOCKERHUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}"
 
     // Deploy configs
-    CONTAINER_NAME = 'vault_guard'   // container name
-    APP_PORT       = '5173'          // host port (public)
-    CONTAINER_PORT = '4173'          // **container** port (Vite preview default earlier)
+    CONTAINER_NAME = 'vault_guard'
+    APP_PORT       = '5173'   // host port (public)
+    CONTAINER_PORT = '4173'   // container port
 
     EMAIL_TO       = 'belsareadityadevops@gmail.com'
-    EMAIL_FROM     = 'belsareadityadevops@gmail.com'   // must match your SMTP-authenticated account
+    EMAIL_FROM     = 'belsareadityadevops@gmail.com'
   }
 
   stages {
-    stage('Checkout') {
+    stage('Source Code Checkout') {
       steps {
         cleanWs()
         git branch: 'main', url: 'https://github.com/belsareaditya/Vg_Animation.git'
       }
     }
 
-    stage('OWASP Dependency Check') {
+    stage('Dependency Vulnerability Scan (OWASP)') {
       steps {
         dependencyCheck additionalArguments: '''
           --scan .
@@ -44,17 +44,17 @@ pipeline {
       }
     }
 
-    stage('Trivy Filesystem Scan') {
+    stage('Filesystem Vulnerability Scan (Trivy)') {
       steps {
         sh '''
-          echo "🔎 Trivy FS scan..."
+          echo "🔎 Running Trivy filesystem scan..."
           trivy fs . -f table -o trivy-fs.txt || true
           trivy fs . -f json  -o trivy-fs.json || true
         '''
       }
     }
 
-    stage('Build Docker Image') {
+    stage('Build Application Docker Image') {
       steps {
         sh '''
           echo "🔨 Building Docker image..."
@@ -64,17 +64,17 @@ pipeline {
       }
     }
 
-    stage('Trivy Image Scan') {
+    stage('Container Image Vulnerability Scan (Trivy)') {
       steps {
         sh '''
-          echo "🧪 Trivy Image scan..."
+          echo "🧪 Running Trivy image scan..."
           trivy image ${IMAGE_NAME} -f table -o trivy-image.txt || true
           trivy image ${IMAGE_NAME} -f json  -o trivy-image.json || true
         '''
       }
     }
 
-    stage('Push Docker Image') {
+    stage('Push Docker Image to Registry') {
       steps {
         withCredentials([string(credentialsId: 'docker-cred', variable: 'dockerpwd')]) {
           sh '''
@@ -88,14 +88,13 @@ pipeline {
       }
     }
 
-    stage('Deploy (Run Container)') {
+    stage('Deploy Application Container') {
       steps {
         withCredentials([string(credentialsId: 'docker-cred', variable: 'dockerpwd')]) {
           sh '''
             set -e
             echo "🚀 Deploying ${IMAGE_TAG} as container ${CONTAINER_NAME} on ${APP_PORT}->${CONTAINER_PORT}..."
 
-            # Login (needed for private repos)
             echo "${dockerpwd}" | docker login -u ${DOCKERHUB_USER} --password-stdin
 
             docker pull ${IMAGE_TAG}
@@ -109,7 +108,6 @@ pipeline {
 
             docker image prune -f || true
 
-            # Run detached, mapping host 5173 → container 4173
             docker run -d \
               --name ${CONTAINER_NAME} \
               -p ${APP_PORT}:${CONTAINER_PORT} \
@@ -125,30 +123,140 @@ pipeline {
   }
 
   post {
+    success { echo "✅ Pipeline completed successfully." }
+    failure { echo "❌ Pipeline failed - check logs." }
+
     always {
       script {
-        archiveArtifacts allowEmptyArchive: true, artifacts: 'trivy-*.txt,trivy-*.json,dependency-check-report.*'
+        // --- Archive trivy & dependency-check artifacts (non-fatal) ---
+        try {
+          archiveArtifacts allowEmptyArchive: true,
+                           artifacts: 'trivy-*.txt,trivy-*.json,dependency-check-report.*',
+                           fingerprint: true
+          echo "Artifacts archived."
+        } catch (err) {
+          echo "ArchiveArtifacts failed or nothing to archive: ${err}"
+        }
 
-        def status = currentBuild.currentResult
-        emailext(
-          to: "${EMAIL_TO}",
-          from: "${EMAIL_FROM}",
-          subject: "Jenkins ${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-          mimeType: 'text/html',
-          body: """
-            <p><b>${env.JOB_NAME}</b> #<b>${env.BUILD_NUMBER}</b> finished with: <b>${status}</b></p>
-            <ul>
-              <li>Image: <code>${IMAGE_TAG}</code></li>
-              <li>Container: <code>${CONTAINER_NAME}</code> mapped <b>${APP_PORT}:${CONTAINER_PORT}</b></li>
-              <li>Build: <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></li>
-              <li>Artifacts: <a href="${env.BUILD_URL}artifact">download</a></li>
-              <li>Console: <a href="${env.BUILD_URL}console">view</a></li>
-            </ul>
-          """,
-          attachmentsPattern: '',
-          attachLog: false,
-          compressLog: false
-        )
+        // --- Collect diagnostics (docker/container info & logs) ---
+        try {
+          sh '''
+            set +e
+            mkdir -p "${WORKSPACE}/pipeline-diagnostics"
+            docker version > "${WORKSPACE}/pipeline-diagnostics/docker-version.txt" 2>&1 || true
+            docker images --format "table {{.Repository}}:{{.Tag}}\\t{{.ID}}\\t{{.Size}}" > "${WORKSPACE}/pipeline-diagnostics/docker-images.txt" 2>&1 || true
+            if docker ps -a --format '{{.Names}}' | grep -q '^${CONTAINER_NAME}$'; then
+              docker ps -a --filter "name=^/${CONTAINER_NAME}$" --format "table {{.ID}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}" > "${WORKSPACE}/pipeline-diagnostics/${CONTAINER_NAME}-status.txt" 2>&1 || true
+              docker logs --tail 200 ${CONTAINER_NAME} > "${WORKSPACE}/pipeline-diagnostics/${CONTAINER_NAME}-logs.txt" 2>&1 || true
+            else
+              echo "Container ${CONTAINER_NAME} not present" > "${WORKSPACE}/pipeline-diagnostics/${CONTAINER_NAME}-status.txt" 2>&1 || true
+            fi
+          '''
+          archiveArtifacts allowEmptyArchive: true, artifacts: 'pipeline-diagnostics/**', fingerprint: true
+          echo "Diagnostics archived."
+        } catch (err) {
+          echo "Diagnostics collection skipped: ${err}"
+        }
+
+        // --- Compose email values with safe defaults ---
+        def status = currentBuild.currentResult ?: 'UNKNOWN'
+        def jobName = env.JOB_NAME ?: 'job'
+        def buildNo = env.BUILD_NUMBER ?: '0'
+        def buildUrl = env.BUILD_URL ?: '#'
+        def img = env.IMAGE_TAG ?: "${DOCKERHUB_USER}/${IMAGE_NAME}:${env.BUILD_NUMBER}"
+        def container = env.CONTAINER_NAME ?: '(none)'
+        def appPort = env.APP_PORT ?: '5173'
+        def containerPort = env.CONTAINER_PORT ?: '4173'
+        def action = (params.ACTION ?: env.ACTION) ?: '(none)'
+
+        // Colors & emoji
+        def badgeColor = '#28a745'
+        def badgeEmoji = '✅'
+        if (status == 'SUCCESS') { badgeColor = '#28a745'; badgeEmoji = '✅' }
+        if (status == 'FAILURE') { badgeColor = '#d73a49'; badgeEmoji = '❌' }
+        if (status == 'UNSTABLE') { badgeColor = '#ff9f43'; badgeEmoji = '⚠️' }
+        if (status == 'ABORTED') { badgeColor = '#6c757d'; badgeEmoji = '⏹' }
+
+        // --- Email body with centered short badge above title ---
+        def emailBody = """
+<!doctype html>
+<html>
+  <head><meta charset="utf-8" /></head>
+  <body style="margin:0; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:#f4f7fa; padding:28px;">
+    <div style="max-width:760px; margin:0 auto;">
+      <div style="background:#ffffff; border-radius:14px; box-shadow:0 14px 40px rgba(20,30,40,0.08); overflow:hidden; padding:30px; text-align:center;">
+
+        <!-- Centered pill badge -->
+        <div style="margin-bottom:16px;">
+          <span style="background:${badgeColor}; color:#fff; padding:10px 28px; border-radius:999px; font-weight:800; font-size:14px; display:inline-block;">
+            ${badgeEmoji} ${status}
+          </span>
+        </div>
+
+        <!-- Title -->
+        <h2 style="margin:0; font-size:20px; color:#0b1220;">Vault Guard Report</h2>
+        <div style="color:#6b7a82; font-size:13px; margin-top:6px; margin-bottom:18px;">
+          ${jobName} — Build <strong>#${buildNo}</strong> • Action: ${action}
+        </div>
+
+        <!-- Info block (centered width) -->
+        <div style="text-align:left; margin:0 auto; max-width:560px;">
+          <div style="margin-bottom:10px;"><span style="font-weight:600; color:#30414a;">Image:</span> <span style="font-family:monospace; background:#f6f8fa; padding:4px 8px; border-radius:6px;">${img}</span></div>
+          <div style="margin-bottom:10px;"><span style="font-weight:600; color:#30414a;">Container:</span> <span style="font-family:monospace; background:#f6f8fa; padding:4px 8px; border-radius:6px;">${container}</span></div>
+          <div style="margin-bottom:14px;"><span style="font-weight:600; color:#30414a;">Port Mapping:</span> ${appPort} → ${containerPort}</div>
+
+          <div style="margin-top:6px; margin-bottom:6px;">
+            <strong>Security Scans:</strong>
+            <div style="display:inline-block; margin-left:8px; background:#fff3cd; color:#7a4a00; padding:6px 10px; border-radius:8px; font-size:13px;">
+              Trivy (fs & image) • OWASP Dependency-Check
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA buttons -->
+        <div style="margin-top:20px;">
+          <a href="${buildUrl}" style="text-decoration:none; display:inline-block; padding:10px 16px; background:#0b74ff; color:#fff; border-radius:8px; font-weight:700; margin:6px;">🔗 View Build</a>
+          <a href="${buildUrl}artifact" style="text-decoration:none; display:inline-block; padding:10px 16px; background:#6f42c1; color:#fff; border-radius:8px; font-weight:700; margin:6px;">📦 Artifacts</a>
+          <a href="${buildUrl}console" style="text-decoration:none; display:inline-block; padding:10px 16px; background:#24292f; color:#fff; border-radius:8px; font-weight:700; margin:6px;">📝 Console Log</a>
+        </div>
+
+        <div style="margin-top:18px; color:#6b7a82; font-size:13px;">
+          Artifacts archived: <strong>trivy-*.txt</strong>, <strong>trivy-*.json</strong>, <strong>dependency-check-report.*</strong>.<br/>
+          Diagnostics (container logs & docker info) in <code>pipeline-diagnostics/</code>.
+        </div>
+
+        <div style="margin-top:20px; border-top:1px solid #eef2f5; padding-top:14px; font-size:12px; color:#93a2ab;">
+          Sent by Jenkins • ${new Date().format("yyyy-MM-dd HH:mm:ss")}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+"""
+
+        // --- Send email (wrap to avoid failing post) ---
+        try {
+          emailext(
+            to: "${EMAIL_TO}",
+            from: "${EMAIL_FROM}",
+            subject: "${badgeEmoji} ${status} — ${jobName} #${buildNo}",
+            mimeType: 'text/html',
+            body: emailBody,
+            attachmentsPattern: '',
+            attachLog: false,
+            compressLog: false
+          )
+          echo "Notification email sent to ${EMAIL_TO}"
+        } catch (mailErr) {
+          echo "Failed to send email notification: ${mailErr}"
+        }
+
+        // final cleanup (non-fatal)
+        try {
+          cleanWs()
+        } catch (err) {
+          echo "Skipping cleanWs(): ${err}"
+        }
       }
     }
   }
