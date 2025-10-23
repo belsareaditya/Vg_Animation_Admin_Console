@@ -32,16 +32,16 @@ jobs:
           echo "${{ secrets.KUBECONFIG_DATA }}" | base64 --decode > "$KUBE_CONFIG_PATH"
           chmod 600 "$KUBE_CONFIG_PATH"
           export KUBECONFIG="$KUBE_CONFIG_PATH"
-          echo "✅ Kubeconfig restored:"
+          echo "Kubeconfig restored:"
           kubectl config view --minify || true
 
-      - name: Apply all Kubernetes manifests in k8s/
+      - name: Apply all Kubernetes manifests in kubernetes__manifest/
         env:
           KUBECONFIG: ${{ env.KUBE_CONFIG_PATH }}
         run: |
           echo "Applying manifests..."
           kubectl apply -R -f k8s/
-          echo "✅ Applied successfully."
+          echo " Applied successfully."
 
           # Optional: Wait for vault-guard rollout
           if kubectl get deployment vault-guard >/dev/null 2>&1; then
