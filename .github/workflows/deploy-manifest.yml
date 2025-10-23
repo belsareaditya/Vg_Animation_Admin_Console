@@ -35,12 +35,12 @@ jobs:
           echo "Kubeconfig restored:"
           kubectl config view --minify || true
 
-      - name: Apply all Kubernetes manifests in kubernetes__manifest/
+      - name: Apply all Kubernetes manifests in kubernetes_manifest/
         env:
           KUBECONFIG: ${{ env.KUBE_CONFIG_PATH }}
         run: |
           echo "Applying manifests..."
-          kubectl apply -R -f kubernetes__manifest/
+          kubectl apply -R -f kubernetes_manifest/
           echo " Applied successfully."
 
           # Optional: Wait for vault-guard rollout
