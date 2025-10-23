@@ -9,12 +9,14 @@ on:
 permissions:
   contents: read
 
-env:
-  KUBE_CONFIG_PATH: ${{ runner.temp }}/kubeconfig
-
 jobs:
   apply-manifests:
     runs-on: ubuntu-latest
+
+    env:
+      # define KUBE_CONFIG_PATH inside the job instead of top-level
+      KUBE_CONFIG_PATH: /tmp/kubeconfig
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,68 +32,26 @@ jobs:
           echo "${{ secrets.KUBECONFIG_DATA }}" | base64 --decode > "$KUBE_CONFIG_PATH"
           chmod 600 "$KUBE_CONFIG_PATH"
           export KUBECONFIG="$KUBE_CONFIG_PATH"
-          # basic validation
-          kubectl version --client
+          echo "✅ Kubeconfig restored:"
           kubectl config view --minify || true
-        env:
-          KUBE_CONFIG_PATH: ${{ env.KUBE_CONFIG_PATH }}
 
-      - name: Find YAML manifests in repo
-        id: find_manifests
-        run: |
-          # prefer k8s/ directory if present
-          set -e
-          declare -a files
-          if [ -d "k8s" ]; then
-            while IFS= read -r f; do files+=("$f"); done < <(git -C . ls-files "k8s/**/*.yml" "k8s/**/*.yaml" || true)
-            while IFS= read -r f; do files+=("$f"); done < <(git -C . ls-files "k8s/*" | grep -E '\.ya?ml$' || true)
-          fi
-          # find any yaml files tracked by git
-          while IFS= read -r f; do
-            # only add if it looks like a k8s manifest (has apiVersion or kind)
-            if grep -Eqs '^(apiVersion|kind):' "$f"; then
-              files+=("$f")
-            fi
-          done < <(git ls-files '*.yml' '*.yaml' || true)
-
-          # de-duplicate and print as newline separated
-          if [ ${#files[@]} -eq 0 ]; then
-            echo "no_manifests=true" >> $GITHUB_OUTPUT
-            echo "manifests="
-          else
-            # remove duplicates
-            uniq_files=$(printf "%s\n" "${files[@]}" | awk '!seen[$0]++')
-            echo "no_manifests=false" >> $GITHUB_OUTPUT
-            # output as comma-separated list
-            manifests=$(printf "%s," $uniq_files | sed 's/,$//')
-            echo "manifests=$manifests" >> $GITHUB_OUTPUT
-            echo "Found manifests:"
-            printf "%s\n" $uniq_files
-          fi
-
-      - name: Apply discovered manifests
-        if: steps.find_manifests.outputs.no_manifests == 'false'
+      - name: Apply all Kubernetes manifests in k8s/
         env:
           KUBECONFIG: ${{ env.KUBE_CONFIG_PATH }}
         run: |
-          # Convert comma-separated list to array
-          MANIFESTS="${{ steps.find_manifests.outputs.manifests }}"
-          IFS=',' read -r -a arr <<< "$MANIFESTS"
-          echo "Applying ${#arr[@]} manifest(s)..."
-          for f in "${arr[@]}"; do
-            echo ">>> kubectl apply -f $f"
-            kubectl apply -f "$f"
-          done
-          # Wait for known deployment to roll out, if present (vault-guard)
+          echo "Applying manifests..."
+          kubectl apply -R -f k8s/
+          echo "✅ Applied successfully."
+
+          # Optional: Wait for vault-guard rollout
           if kubectl get deployment vault-guard >/dev/null 2>&1; then
-            kubectl rollout status deployment/vault-guard --namespace default --timeout=180s
+            kubectl rollout status deployment/vault-guard --timeout=180s
           else
-            echo "No deployment named vault-guard found; skipping rollout wait."
+            echo "ℹ️ No deployment named vault-guard found. Skipping rollout wait."
           fi
 
-      - name: Success - show cluster pods
+      - name: Show Pods for debug
         if: always()
         env:
           KUBECONFIG: ${{ env.KUBE_CONFIG_PATH }}
-        run: |
-          kubectl get pods --all-namespaces -o wide || true
+        run: kubectl get pods -A -o wide || true
