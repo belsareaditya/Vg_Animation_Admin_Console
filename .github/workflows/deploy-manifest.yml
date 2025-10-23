@@ -40,7 +40,7 @@ jobs:
           KUBECONFIG: ${{ env.KUBE_CONFIG_PATH }}
         run: |
           echo "Applying manifests..."
-          kubectl apply -R -f k8s/
+          kubectl apply -R -f kubernetes__manifest/
           echo " Applied successfully."
 
           # Optional: Wait for vault-guard rollout
